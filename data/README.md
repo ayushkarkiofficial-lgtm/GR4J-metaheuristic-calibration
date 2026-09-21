@@ -38,7 +38,7 @@ target.
 1. Download **CAMELS-AUS v2** and place it under `data/` in its native layout
    (`01_id_name_metadata/`, `02_location_boundary_area/`, `03_streamflow/`,
    `05_hydrometeorology/`, …). These folders are git-ignored.
-2. Run `codes/process_csv.ipynb` — it slices gauge `114001A` from the streamflow, AGCD/SILO
+2. Run `codes/01_process_csv.ipynb` — it slices gauge `114001A` from the streamflow, AGCD/SILO
    precipitation, and Morton PET series over the study window and writes
    `data/processed/prec_PET_sf.csv`.
 

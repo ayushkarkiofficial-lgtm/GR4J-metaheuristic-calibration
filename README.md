@@ -50,11 +50,11 @@ flood_hydrology_modeling/
 │   ├── Metric_Calculation.ipynb      # KGE, NSE, PBIAS (imported as a library)
 │   ├── rs_spso.py                    # RS-SPSO optimizer (importable library — silent)
 │   ├── rs_spso.ipynb                 # RS-SPSO demos, benchmarks, animation
-│   ├── process_csv.ipynb             # builds data/processed/prec_PET_sf.csv (active data path)
 │   ├── prepare_basin_data.py         # alternative prep: Hargreaves PET + water-balance QC
-│   ├── 03_gr4j_calibration.ipynb     # Differential Evolution baseline calibration
-│   ├── 04_multimodal_calibration.ipynb  # RS-SPSO multimodal / equifinality search
-│   └── 05_klemes_validation.ipynb    # wet<->dry differential split-sample validation
+│   ├── 01_process_csv.ipynb          # builds data/processed/prec_PET_sf.csv (active data path)
+│   ├── 02_gr4j_calibration.ipynb     # Differential Evolution baseline calibration
+│   ├── 03_multimodal_calibration.ipynb  # RS-SPSO multimodal / equifinality search
+│   └── 04_klemes_validation.ipynb    # wet<->dry differential split-sample validation
 ├── data/
 │   ├── README.md
 │   └── processed/prec_PET_sf.csv     # the only committed data (P, PET, Q for 114001A)
@@ -96,7 +96,7 @@ jupyter lab            # or: jupyter notebook
 ```
 
 Notebooks import each other via [`import-ipynb`] (e.g. `from GR4J import compute_Q`), so
-**run them from inside `codes/`**. Suggested order: `process_csv` → `03` → `04` → `05`.
+**run them from inside `codes/`**. Suggested order: `01_process_csv` → `02` → `03` → `04`.
 `GR4J.ipynb` and `Metric_Calculation.ipynb` are libraries and don't need to be run directly.
 The RS-SPSO optimizer is imported from the plain module `rs_spso.py` (not the notebook), so
 pulling it into a calibration run doesn't execute the notebook's demos — `rs_spso.ipynb` is
