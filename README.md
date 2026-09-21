@@ -62,7 +62,7 @@ flood_hydrology_modeling/
     ├── algorithm_01.md               # RS-SPSO algorithm design notes
     ├── pseudo_code_01.md             # RS-SPSO pseudocode (v2)
     ├── perrin2003.pdf                # GR4J reference (Perrin et al., 2003)
-    └── GR4J.png, S-curve_basics.png
+    └── GR4J.png
 ```
 
 The raw CAMELS-AUS v2 archive (~5 GB) is **not** committed — see `data/README.md` for how
