@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite it as below."
+title: "Observation-Validated Rainfall–Runoff Modelling with GR4J (Murray River at Upper Murray, 114001A)"
+abstract: >-
+  A hydrology-first study of GR4J calibration, parameter equifinality, and
+  transferability for CAMELS-AUS gauge 114001A, using a self-coded GR4J model,
+  a Differential Evolution baseline, a respawning speciation-based PSO (RS-SPSO)
+  for multimodal calibration, and a Klemeš (1986) differential split-sample test.
+type: software
+authors:
+  - family-names: Karki
+    given-names: Ayush
+version: 0.1.0
+date-released: "2026-09-21"
+license: MIT
+keywords:
+  - hydrology
+  - rainfall-runoff
+  - GR4J
+  - calibration
+  - equifinality
+  - CAMELS-AUS
+# TODO: set this to the actual GitHub URL once the repo is pushed.
+repository-code: "https://github.com/<your-username>/flood_hydrology_modeling"
+references:
+  - type: article
+    authors:
+      - family-names: Perrin
+        given-names: Charles
+      - family-names: Michel
+        given-names: Claude
+      - family-names: Andréassian
+        given-names: Vazken
+    title: "Improvement of a parsimonious model for streamflow simulation"
+    journal: "Journal of Hydrology"
+    volume: 279
+    year: 2003
+    start: 275
+    end: 289

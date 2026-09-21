@@ -175,3 +175,87 @@ question*, never the headline — to protect the CV-rebalancing goal.
 - **Methods:** GR4J (Perrin et al. 2003), CemaNeige snow, Hargreaves PET, KGE (Gupta et al. 2009),
   NSE (Nash-Sutcliffe 1970), Klemeš (1986) split-sample testing, L-moments (Hosking), GEV / Log-Pearson III.
 - **Stack:** Python (NumPy, pandas, SciPy, Matplotlib), optional `lmoments3`, optional PyTorch (LSTM).
+
+## 14. Finalized data decisions (LLM council, 2026-09-11)
+
+These are the locked data choices for the Track A CAMELS-AUS v2 build, decided via a 5-advisor council + peer review. Basin = gauge 114001A.
+
+| Step | Decision | Rationale |
+|---|---|---|
+| Basin | **114001A**, single basin (reject multi-basin as timeline-fatal scope creep). | Raw 100%-complete record + closed water balance means validation tests the model, not gap-filling; humid, snow-free, DJF-monsoon regime suits GR4J (no snow module needed). It is the **NORTH QUEENSLAND** Murray (Tully–Murray region, lat −18.1, 155 km²), **NOT** the Murray–Darling — must be labeled clearly in the report. |
+| Discharge | **raw `streamflow_mmd.csv`** (mm/day), NOT `streamflow_MLd_inclInfilled.csv`. | Infilled gaps were filled by BoM using GR4J; validating a GR4J against GR4J-infilled "observations" is circular target-leakage. 114001A is 100% complete on raw, so nothing is lost. |
+| Precipitation | **AGCD primary**, **SILO as a reported sensitivity run** (parameterized forcing filename). | AGCD's higher volume (2009 vs 1840 mm/yr) closes the verified water balance; SILO's −8.4% would force compensating distortion in the production-store parameter. Daily corr AGCD~SILO = 0.962; extremes nearly identical. SILO run is a genuine forcing-uncertainty result, not a throwaway footnote. |
+| PET | **self-coded Hargreaves** (temperature-only), validated against the dataset's Morton PET within 3.5% (1450 vs 1502 mm/yr). | Framed as implementation transparency / demonstrated craft, **not** as superior accuracy (GR4J is PET-insensitive). The earlier "transfers to data-sparse Nepal" rationale is **dropped** (Nepal met data includes radiation/humidity; this AU study won't be repeated for Nepal). |
+| Calibration/validation window | 1970–2022; **2-year warm-up** (not 1); **Jul–Jun water-year**; wet/dry split by ranking complete water-years by annual P and splitting at the median; then Klemeš hierarchical + differential split-sample. | 2-yr warm-up costs nothing in 52 years and suits slow stores; Jul–Jun water-year preserves the DJF monsoon (a calendar split would shred the flood season). Start metric accumulation **after** warm-up rather than trimming the DataFrame, to avoid an off-by-one bug. |
+
+### 14a. Blind spots caught in peer review (must address in the build/report)
+
+1. **Daily-timestep vs flood-peak mismatch** — daily lumped GR4J cannot resolve sub-daily flash peaks on a 155 km² tropical catchment. Fitting GEV to daily-mean annual maxima and reading off Q₁₀₀ is a support/scale mismatch. Fix: state this limitation explicitly; frame flood-frequency as analysis of the daily-mean annual-max series + signatures (not instantaneous peak reproduction); if available, validate against a published/BoM flood-frequency estimate for gauge 114001A.
+2. **Observation uncertainty floor** — "100% complete" ≠ "accurate." High-flow rating-curve extrapolation is least reliable exactly in the flood regime being studied. Report the gauge's rating/QA quality and treat it as an error floor.
+3. **GEV on ~52 annual maxima needs confidence intervals** — report return levels with uncertainty bands (L-moments + the spec's Log-Pearson III cross-check), never bare point estimates.
+4. **Non-stationarity over 1970–2022 threatens the GEV stationarity assumption** — acknowledge it; note it reinforces (not undermines) the Klemeš differential split-sample transferability narrative.
+5. **Reproducibility spec signals "real hydrologist" more than any single forcing/PET choice** — state the objective function (KGE), parameter bounds, optimizer (SCE-UA / differential evolution), random seed, and warm-up bookkeeping; include a data/code availability statement (repo + dataset DOI/version + environment lockfile).
+
+## 15. End-to-end pipeline flowchart
+
+Data-to-report pipeline. Diamonds are **decision gates** that must pass before proceeding;
+`[DONE]` / `[NEXT]` mark progress. Node text is plain ASCII for portable rendering. The five
+section-14a blind-spot checkpoints are in the table below, keyed to the step they constrain.
+
+```mermaid
+flowchart TD
+    D1["PHASE 0 - DATA  [DONE]<br/>CAMELS-AUS v2, Zenodo 13350616, subsets 01-05"]
+    D2["Screen 561 basins (ClimaticIndices.csv)<br/>snow-free, humid, DJF-monsoon, long record"]
+    D3["SELECT gauge 114001A<br/>N-QLD Murray, 155 km2, HRS reference gauge"]
+    D4["prepare_basin_data.py + self-coded Hargreaves PET<br/>build basin_114001A.csv"]
+    D6{"QC GATE:<br/>water balance closes?"}
+    D7["basin_114001A.csv ready<br/>P_AGCD, PET_Har, Q_raw (plus SILO, Morton)"]
+    D1 --> D2 --> D3 --> D4 --> D6
+    D6 -->|"yes, ratio 0.56"| D7
+    D6 -->|"no, reselect"| D2
+
+    M1["PHASE 1 - MODEL  [NEXT]<br/>code GR4J, ~100 lines"]
+    M2{"VERIFY GATE:<br/>matches airGR / Perrin 2003?"}
+    M3["GR4J verified, no snow module"]
+    D7 --> M1 --> M2
+    M2 -->|"no, debug"| M1
+    M2 -->|"yes"| M3
+
+    C1["PHASE 2 - CALIBRATE + VALIDATE<br/>objective KGE, SCE-UA/DE, 2-yr warmup, Jul-Jun year"]
+    C2["Split water-years by annual P at median: WET / DRY"]
+    C3["Split-sample: calibrate A, validate B"]
+    C4["Differential SST: WET-to-DRY and DRY-to-WET"]
+    C5["Metrics per period: NSE, KGE, PBIAS, logNSE"]
+    M3 --> C1 --> C2 --> C3 --> C4 --> C5
+
+    S1{"Ahead of schedule?"}
+    S2["SILO forcing sensitivity run"]
+    C5 --> S1
+    S1 -->|"yes"| S2 --> DG1
+    S1 -->|"no"| DG1
+
+    DG1["PHASE 3 - DIAGNOSTICS<br/>FDC, baseflow separation, event hydrographs, WB closure"]
+    F1["PHASE 4 - FLOOD FREQUENCY<br/>annual-max daily-mean Q per water-year, ~52 points"]
+    F2["Fit GEV + Log-Pearson III via L-moments"]
+    F3["Return levels Q2 to Q100 with confidence intervals"]
+    F4["Compare to published / BoM flood estimate"]
+    DG1 --> F1 --> F2 --> F3 --> F4
+
+    O1{"ML footnote?<br/>only if time remains"}
+    O2["LSTM vs GR4J on DSST + Mahalanobis AD gate"]
+    R1["PHASE 6 - REPORT (hydrology-first)<br/>basin, model, calib, VALIDATION, flood, limits"]
+    R2["Figures + reproducibility statement<br/>repo, dataset DOI, lockfile, seed, param bounds"]
+    F4 --> O1
+    O1 -->|"yes"| O2 --> R1
+    O1 -->|"no"| R1
+    R1 --> R2
+```
+
+**Blind-spot checkpoints (section 14a), keyed to the step:**
+
+| Step | Checkpoint |
+|---|---|
+| D7 - discharge | "100% complete" is not "accurate": report rating/QA as an error floor (HRS status mitigates, does not remove). |
+| C4 - DSST | Non-stationarity over 1970-2022 threatens GEV stationarity but reinforces the differential-split narrative. |
+| F1 - annual max | Daily-mean annual max is not the instantaneous peak: frame FFA on the daily-mean series and state the caveat. |
+| F3 - return levels | Report confidence intervals on Q2..Q100; never bare point estimates from ~52 maxima. |

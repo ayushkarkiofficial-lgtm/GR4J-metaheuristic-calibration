@@ -1,0 +1,13 @@
+# Core scientific stack for the GR4J + RS-SPSO study.
+# Pinned loosely; tested on Python 3.10+.
+numpy>=1.23
+pandas>=1.5
+scipy>=1.9
+numba>=0.57
+matplotlib>=3.6
+
+# Cross-notebook imports (e.g. `from GR4J import compute_Q`)
+import-ipynb>=0.1.4
+
+# To run the notebooks
+jupyter>=1.0
