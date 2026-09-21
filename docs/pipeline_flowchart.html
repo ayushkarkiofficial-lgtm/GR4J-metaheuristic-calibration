@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>One Basin, Done Right — Pipeline Flowchart</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root { --ink:#1a2330; --muted:#5b6875; --line:#d8dee6; --bg:#f6f8fb; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--ink); background: var(--bg); line-height: 1.5;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: .95rem; }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; box-shadow: 0 1px 3px rgba(20,35,60,.06); margin-bottom: 24px;
+  }
+  .diagram { overflow-x: auto; text-align: center; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; font-size: .85rem; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); display:inline-block; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #eef2f7; font-weight: 600; }
+  td code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; font-size: .85em; }
+  .foot { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>"One Basin, Done Right" — end-to-end pipeline</h1>
+  <p class="sub">Observation-validated flood-hydrology study on CAMELS-AUS v2 · gauge 114001A · self-coded GR4J.
+     Diamonds are decision gates that must pass before proceeding.</p>
+
+  <div class="card">
+    <div class="diagram">
+      <pre class="mermaid">
+flowchart TD
+    D1["PHASE 0 - DATA  [DONE]<br/>CAMELS-AUS v2, Zenodo 13350616, subsets 01-05"]
+    D2["Screen 561 basins (ClimaticIndices.csv)<br/>snow-free, humid, DJF-monsoon, long record"]
+    D3["SELECT gauge 114001A<br/>N-QLD Murray, 155 km2, HRS reference gauge"]
+    D4["prepare_basin_data.py + self-coded Hargreaves PET<br/>build basin_114001A.csv"]
+    D6{"QC GATE:<br/>water balance closes?"}
+    D7["basin_114001A.csv ready<br/>P_AGCD, PET_Har, Q_raw (plus SILO, Morton)"]
+    D1 --> D2 --> D3 --> D4 --> D6
+    D6 -->|"yes, ratio 0.56"| D7
+    D6 -->|"no, reselect"| D2
+
+    M1["PHASE 1 - MODEL  [NEXT]<br/>code GR4J, ~100 lines"]
+    M2{"VERIFY GATE:<br/>matches airGR / Perrin 2003?"}
+    M3["GR4J verified, no snow module"]
+    D7 --> M1 --> M2
+    M2 -->|"no, debug"| M1
+    M2 -->|"yes"| M3
+
+    C1["PHASE 2 - CALIBRATE + VALIDATE<br/>objective KGE, SCE-UA/DE, 2-yr warmup, Jul-Jun year"]
+    C2["Split water-years by annual P at median: WET / DRY"]
+    C3["Split-sample: calibrate A, validate B"]
+    C4["Differential SST: WET-to-DRY and DRY-to-WET"]
+    C5["Metrics per period: NSE, KGE, PBIAS, logNSE"]
+    M3 --> C1 --> C2 --> C3 --> C4 --> C5
+
+    S1{"Ahead of schedule?"}
+    S2["SILO forcing sensitivity run"]
+    C5 --> S1
+    S1 -->|"yes"| S2 --> DG1
+    S1 -->|"no"| DG1
+
+    DG1["PHASE 3 - DIAGNOSTICS<br/>FDC, baseflow separation, event hydrographs, WB closure"]
+    F1["PHASE 4 - FLOOD FREQUENCY<br/>annual-max daily-mean Q per water-year, ~52 points"]
+    F2["Fit GEV + Log-Pearson III via L-moments"]
+    F3["Return levels Q2 to Q100 with confidence intervals"]
+    F4["Compare to published / BoM flood estimate"]
+    DG1 --> F1 --> F2 --> F3 --> F4
+
+    O1{"ML footnote?<br/>only if time remains"}
+    O2["LSTM vs GR4J on DSST + Mahalanobis AD gate"]
+    R1["PHASE 6 - REPORT (hydrology-first)<br/>basin, model, calib, VALIDATION, flood, limits"]
+    R2["Figures + reproducibility statement<br/>repo, dataset DOI, lockfile, seed, param bounds"]
+    F4 --> O1
+    O1 -->|"yes"| O2 --> R1
+    O1 -->|"no"| R1
+    R1 --> R2
+
+    classDef done fill:#d7f0d7,stroke:#2e7d32,color:#14320f;
+    classDef next fill:#dbe9ff,stroke:#1a5fb4,color:#0c2a52;
+    classDef gate fill:#fff3cd,stroke:#d39e00,color:#4d3b00;
+    classDef opt  fill:#ece9ff,stroke:#6a5acd,color:#2a2160,stroke-dasharray:4 3;
+    class D1,D2,D3,D4,D7 done;
+    class M1 next;
+    class D6,M2,S1,O1 gate;
+    class S2,O2 opt;
+    </pre>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="background:#d7f0d7;border-color:#2e7d32"></i> done</span>
+      <span><i class="sw" style="background:#dbe9ff;border-color:#1a5fb4"></i> next build step</span>
+      <span><i class="sw" style="background:#fff3cd;border-color:#d39e00"></i> decision gate</span>
+      <span><i class="sw" style="background:#ece9ff;border-color:#6a5acd"></i> optional (if time remains)</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Blind-spot checkpoints (spec §14a), keyed to the step</h2>
+    <table>
+      <thead><tr><th>Step</th><th>Checkpoint</th></tr></thead>
+      <tbody>
+        <tr><td><code>D7</code> discharge</td><td>"100% complete" is not "accurate" — report rating/QA as an error floor (HRS status mitigates, does not remove).</td></tr>
+        <tr><td><code>C4</code> DSST</td><td>Non-stationarity over 1970–2022 threatens GEV stationarity but <em>reinforces</em> the differential-split narrative.</td></tr>
+        <tr><td><code>F1</code> annual max</td><td>Daily-mean annual max is not the instantaneous peak — frame FFA on the daily-mean series and state the caveat.</td></tr>
+        <tr><td><code>F3</code> return levels</td><td>Report confidence intervals on Q2…Q100; never bare point estimates from ~52 maxima.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="foot">Source of truth: <code>docs/superpowers/specs/2026-09-09-flood-hydrology-basin-study-design.md</code> §14–15.
+     Open this file in any browser; it renders offline-capable via the Mermaid CDN (needs internet on first load).</p>
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "base", flowchart: { curve: "basis", nodeSpacing: 45, rankSpacing: 45 } });
+</script>
+</body>
+</html>
