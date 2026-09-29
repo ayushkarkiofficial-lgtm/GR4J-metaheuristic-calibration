@@ -5,17 +5,19 @@ in the **Murray River at Upper Murray (gauge 114001A)**, North East Coast, Queen
 using **CAMELS-AUS v2** observations.
 
 A self-coded GR4J conceptual model is calibrated against observed discharge with standard
-hydrologic diagnostics (KGE / NSE / PBIAS), then a multimodal optimizer (RS-SPSO) is used
-to probe whether multiple distinct parameter sets calibrate comparably well, and a Klemeš
-(1986) differential split-sample test checks how well each set transfers between wet and
-dry climatic regimes.
+hydrologic diagnostics (KGE / NSE / PBIAS). A self-coded Respawning Speciation-based PSO
+(RS-SPSO), with sub-swarms and particle respawning, surfaces multiple well-performing
+(equifinal) parameter sets, then hands off to differential evolution to sharpen the final
+fit (KGE ≈ 0.87). A Klemeš (1986) differential split-sample test checks how well the
+calibrated model transfers between wet and dry climatic regimes.
 
 ```
-CAMELS-AUS  P & PET  ->  GR4J  ->  Qsim  vs  Qobs  ->  KGE objective
-                                                       /            \
-                                            DE baseline            RS-SPSO
-                                                       \            /
-                                              multiple parameter sets
+CAMELS-AUS  P & PET  ->  GR4J  ->  Qsim vs Qobs  ->  KGE objective
+                                                          |
+                        RS-SPSO (sub-swarms + particle respawning)
+                          -> multiple equifinal parameter sets
+                                                          |
+                        differential evolution -> sharpened best fit
                                                           |
                                                   Klemeš validation
 ```
@@ -52,7 +54,7 @@ flood_hydrology_modeling/
 │   ├── rs_spso.ipynb                 # RS-SPSO demos, benchmarks, animation
 │   ├── prepare_basin_data.py         # alternative prep: Hargreaves PET + water-balance QC
 │   ├── 01_process_csv.ipynb          # builds data/processed/prec_PET_sf.csv (active data path)
-│   ├── 02_gr4j_calibration.ipynb     # Differential Evolution baseline calibration
+│   ├── 02_gr4j_calibration.ipynb     # differential-evolution refinement of the final fit
 │   ├── 03_multimodal_calibration.ipynb  # RS-SPSO multimodal / equifinality search
 │   └── 04_klemes_validation.ipynb    # wet<->dry differential split-sample validation
 ├── data/
@@ -75,14 +77,15 @@ to obtain it and regenerate the processed CSV.
   from the governing equations (numba-accelerated) in `GR4J.ipynb`.
 - **Objective** — 1 − KGE, with a **730-day (2-year) warm-up** discarded before scoring and
   NaN observation days masked out.
-- **Baseline calibration (03)** — SciPy `differential_evolution` over
-  X1∈[1,1500], X2∈[−5,5], X3∈[1,500], X4∈[0.5,4], seed 42. Reaches **KGE ≈ 0.87** on the
+- **Multimodal search (03)** — a self-coded RS-SPSO (Respawning Speciation-based PSO) searches
+  the normalized `[0,1]⁴` parameter cube — so the species distance treats all four parameters
+  fairly rather than being dominated by the wide X1/X3 ranges — with sub-swarms and particle
+  respawning, surfacing several distinct parameter sets that all calibrate well → the
+  equifinality analysis.
+- **Refinement (02)** — SciPy `differential_evolution` over X1∈[1,1500], X2∈[−5,5],
+  X3∈[1,500], X4∈[0.5,4] then sharpens the final best fit, reaching **KGE ≈ 0.87** on the
   calibration period.
-- **Multimodal calibration (04)** — RS-SPSO (Respawning Speciation-based PSO) searches the
-  normalized `[0,1]⁴` parameter cube — so the species distance treats all four parameters
-  fairly rather than being dominated by the wide X1/X3 ranges — for several distinct
-  parameter sets that all calibrate well → the equifinality analysis.
-- **Klemeš validation (05)** — GR4J is calibrated on the wettest contiguous block of years
+- **Klemeš validation (04)** — GR4J is calibrated on the wettest contiguous block of years
   and validated on the driest, and vice-versa; `klemes_warmup` applies a per-split warm-up
   so validation windows do not start with cold stores.
 
